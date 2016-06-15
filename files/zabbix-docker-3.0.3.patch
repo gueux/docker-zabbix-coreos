@@ -1,0 +1,757 @@
+From 3018d8c73c44343b8edf0a44f3e99205373e148e Mon Sep 17 00:00:00 2001
+From: Nikolay Murga <nikolay.m@murga.kiev.ua>
+Date: Wed, 15 Jun 2016 11:01:41 +0300
+Subject: [PATCH] Add docker support
+
+---
+ configure                             | 23 +++++++++++--
+ configure.ac                          | 21 ++++++++++--
+ src/libs/zbxsysinfo/linux/boottime.c  |  6 +++-
+ src/libs/zbxsysinfo/linux/cpu.c       | 12 +++++--
+ src/libs/zbxsysinfo/linux/diskio.c    | 16 ++++++++-
+ src/libs/zbxsysinfo/linux/diskspace.c |  6 +++-
+ src/libs/zbxsysinfo/linux/hardware.h  | 14 ++++++++
+ src/libs/zbxsysinfo/linux/kernel.c    | 12 +++++--
+ src/libs/zbxsysinfo/linux/memory.c    | 12 +++++--
+ src/libs/zbxsysinfo/linux/net.c       | 31 +++++++++++++++---
+ src/libs/zbxsysinfo/linux/proc.c      | 61 +++++++++++++++++++++++++++++++----
+ src/libs/zbxsysinfo/linux/sensors.c   | 14 +++++++-
+ src/libs/zbxsysinfo/linux/software.h  |  8 ++++-
+ src/libs/zbxsysinfo/linux/swap.c      | 32 ++++++++++++++++--
+ src/zabbix_agent/cpustat.c            |  5 +++
+ src/zabbix_agent/stats.c              |  9 ++++--
+ 16 files changed, 248 insertions(+), 34 deletions(-)
+
+diff --git a/configure b/configure
+index 2022988..0bf4f36 100755
+--- a/configure
++++ b/configure
+@@ -818,6 +818,7 @@ enable_proxy
+ enable_agent
+ enable_java
+ enable_ipv6
++enable_docker
+ with_ibm_db2
+ with_ibm_db2_include
+ with_ibm_db2_lib
+@@ -1487,6 +1488,7 @@ Optional Features:
+   --enable-agent          Turn on build of Zabbix agent and client utilities
+   --enable-java           Turn on build of Zabbix Java gateway
+   --enable-ipv6           Turn on support of IPv6
++  --enable-docker         Change paths to /proc, /sys, /dev to /hostfs/proc, /hostfs/sys, /hostfs/dev
+ 
+ Optional Packages:
+   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
+@@ -7843,6 +7845,16 @@ else
+   ipv6=no
+ fi
+ 
++# Check whether --enable-docker was given.
++if test "${enable_docker+set}" = set; then :
++  enableval=$enable_docker; case "${enableval}" in
++  yes) docker=yes ;;
++  no)  docker=no ;;
++  *) as_fn_error $? "bad value ${enableval} for --enable-docker" "$LINENO" 5 ;;
++esac
++else
++  docker=no
++fi
+ 
+ have_db="no"
+ have_unixodbc="no"
+@@ -7851,16 +7863,22 @@ have_jabber="no"
+ have_snmp="no"
+ have_ipmi="no"
+ have_ipv6="no"
++have_docker="no"
+ have_ssh2="no"
+ have_tls="no"
+ 
+ if test "x$ipv6" = "xyes"; then
+ 
+ $as_echo "#define HAVE_IPV6 1" >>confdefs.h
+-
+ 	have_ipv6="yes"
+ fi
+ 
++if test "x$docker" = "xyes"; then
++
++$as_echo "#define HAVE_DOCKER 1" >>confdefs.h
++	have_docker="yes"
++fi
++
+ if test "x$server" = "xyes" || test "x$proxy" = "xyes"; then
+ 
+ 	have_multirow_insert="no"
+@@ -13515,7 +13533,8 @@ fi
+ 
+ echo "
+   LDAP support:          ${found_ldap}
+-  IPv6 support:          ${have_ipv6}"
++  IPv6 support:          ${have_ipv6}
++  Docker support:        ${have_docker}"
+ 
+ echo
+ echo "***********************************************************"
+diff --git a/configure.ac b/configure.ac
+index 9250704..0d8cd1d 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -1081,6 +1081,14 @@ esac],
+ [java=no])
+ AM_CONDITIONAL(JAVA, test "x$java" = "xyes")
+ 
++AC_ARG_ENABLE(docker, [  --enable-docker         Turn on support of Docker],
++[case "${enableval}" in
++  yes) docker=yes ;;
++  no)  docker=no ;;
++  *) AC_MSG_ERROR([bad value ${enableval} for --enable-docker]) ;;
++esac],
++[docker=no])
++
+ AC_ARG_ENABLE(ipv6,[  --enable-ipv6           Turn on support of IPv6],
+ [case "${enableval}" in
+   yes) ipv6=yes ;;
+@@ -1095,6 +1103,7 @@ have_web_monitoring="no"
+ have_jabber="no"
+ have_snmp="no"
+ have_ipmi="no"
++have_docker="no"
+ have_ipv6="no"
+ have_ssh2="no"
+ have_tls="no"
+@@ -1104,6 +1113,11 @@ if test "x$ipv6" = "xyes"; then
+ 	have_ipv6="yes"
+ fi
+ 
++if test "x$docker" = "xyes"; then
++  AC_DEFINE(HAVE_DOCKER,1,[Define to 1 if Docker features should be enabled.])
++  have_docker="yes"
++fi
++
+ if test "x$server" = "xyes" || test "x$proxy" = "xyes"; then
+ 
+ 	have_multirow_insert="no"
+@@ -1232,7 +1246,7 @@ if test "x$server" = "xyes" || test "x$proxy" = "xyes"; then
+ 	DB_CFLAGS="$IBM_DB2_CPPFLAGS $MYSQL_CFLAGS $ORACLE_CPPFLAGS $POSTGRESQL_CFLAGS $SQLITE3_CPPFLAGS"
+ 	DB_LDFLAGS="$IBM_DB2_LDFLAGS $MYSQL_LDFLAGS $ORACLE_LDFLAGS $POSTGRESQL_LDFLAGS $SQLITE3_LDFLAGS"
+ 	DB_LIBS="$IBM_DB2_LIBS $MYSQL_LIBS $ORACLE_LIBS $POSTGRESQL_LIBS $SQLITE3_LIBS"
+-	
++
+ 	AC_SUBST(DB_CFLAGS)
+ 	AC_SUBST(DB_LDFLAGS)
+ 	AC_SUBST(DB_LIBS)
+@@ -1521,7 +1535,7 @@ case "x$ARCH" in
+ 	xlinux|xsolaris)
+ 		AC_DEFINE(ZBX_PROCSTAT_COLLECTOR, 1 , [Define to 1 on linux and solaris platforms])
+ 		;;
+-esac		
++esac
+ 
+ 
+ dnl *****************************************************************
+@@ -1717,7 +1731,8 @@ fi
+ 
+ echo "
+   LDAP support:          ${found_ldap}
+-  IPv6 support:          ${have_ipv6}"
++  IPv6 support:          ${have_ipv6}
++  Docker support:        ${have_docker}"
+ 
+ echo
+ echo "***********************************************************"
+diff --git a/src/libs/zbxsysinfo/linux/boottime.c b/src/libs/zbxsysinfo/linux/boottime.c
+index 4196cd6..7f18016 100644
+--- a/src/libs/zbxsysinfo/linux/boottime.c
++++ b/src/libs/zbxsysinfo/linux/boottime.c
+@@ -28,7 +28,11 @@ int	SYSTEM_BOOTTIME(AGENT_REQUEST *request, AGENT_RESULT *result)
+ 	int		ret = SYSINFO_RET_FAIL;
+ 	unsigned long	value;
+ 
+-	if (NULL == (f = fopen("/proc/stat", "r")))
++#ifdef HAVE_DOCKER
++  if (NULL == (f = fopen("/hostfs/proc/stat", "r")))
++#else
++  if (NULL == (f = fopen("/proc/stat", "r")))
++#endif
+ 	{
+ 		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open /proc/stat: %s", zbx_strerror(errno)));
+ 		return ret;
+diff --git a/src/libs/zbxsysinfo/linux/cpu.c b/src/libs/zbxsysinfo/linux/cpu.c
+index 87e934c..cb0c69d 100644
+--- a/src/libs/zbxsysinfo/linux/cpu.c
++++ b/src/libs/zbxsysinfo/linux/cpu.c
+@@ -194,7 +194,11 @@ int     SYSTEM_CPU_SWITCHES(AGENT_REQUEST *request, AGENT_RESULT *result)
+ 	zbx_uint64_t	value = 0;
+ 	FILE		*f;
+ 
+-	if (NULL == (f = fopen("/proc/stat", "r")))
++#ifdef HAVE_DOCKER
++  if (NULL == (f = fopen("/hostfs/proc/stat", "r")))
++#else
++  if (NULL == (f = fopen("/proc/stat", "r")))
++#endif
+ 	{
+ 		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open /proc/stat: %s", zbx_strerror(errno)));
+ 		return SYSINFO_RET_FAIL;
+@@ -227,7 +231,11 @@ int     SYSTEM_CPU_INTR(AGENT_REQUEST *request, AGENT_RESULT *result)
+ 	zbx_uint64_t	value = 0;
+ 	FILE		*f;
+ 
+-	if (NULL == (f = fopen("/proc/stat", "r")))
++#ifdef HAVE_DOCKER
++  if (NULL == (f = fopen("/hostfs/proc/stat", "r")))
++#else
++  if (NULL == (f = fopen("/proc/stat", "r")))
++#endif
+ 	{
+ 		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open /proc/stat: %s", zbx_strerror(errno)));
+ 		return SYSINFO_RET_FAIL;
+diff --git a/src/libs/zbxsysinfo/linux/diskio.c b/src/libs/zbxsysinfo/linux/diskio.c
+index b9ff5f2..373a3f5 100644
+--- a/src/libs/zbxsysinfo/linux/diskio.c
++++ b/src/libs/zbxsysinfo/linux/diskio.c
+@@ -22,12 +22,21 @@
+ #include "stats.h"
+ #include "diskdevices.h"
+ 
++#ifdef HAVE_DOCKER
++#define ZBX_DEV_PFX	"/hostfs/dev/"
++#else
+ #define ZBX_DEV_PFX	"/dev/"
++#endif
++
+ #define ZBX_DEV_READ	0
+ #define ZBX_DEV_WRITE	1
+ 
+ #if defined(KERNEL_2_4)
+-#	define INFO_FILE_NAME	"/proc/partitions"
++#ifdef HAVE_DOCKER
++# define INFO_FILE_NAME	"/hostfs/proc/partitions"
++#else
++# define INFO_FILE_NAME	"/proc/partitions"
++#endif
+ #	define PARSE(line)	if (sscanf(line, ZBX_FS_UI64 ZBX_FS_UI64 " %*d %s " 		\
+ 					ZBX_FS_UI64 " %*d " ZBX_FS_UI64 " %*d "			\
+ 					ZBX_FS_UI64 " %*d " ZBX_FS_UI64 " %*d %*d %*d %*d",	\
+@@ -40,7 +49,12 @@
+ 				&ds[ZBX_DSTAT_W_SECT]						\
+ 				) != 7) continue
+ #else
++
++#ifdef HAVE_DOCKER
++#	define INFO_FILE_NAME	"/hostfs/proc/diskstats"
++#else
+ #	define INFO_FILE_NAME	"/proc/diskstats"
++#endif
+ #	define PARSE(line)	if (sscanf(line, ZBX_FS_UI64 ZBX_FS_UI64 " %s "			\
+ 					ZBX_FS_UI64 " %*d " ZBX_FS_UI64 " %*d "			\
+ 					ZBX_FS_UI64 " %*d " ZBX_FS_UI64 " %*d %*d %*d %*d",	\
+diff --git a/src/libs/zbxsysinfo/linux/diskspace.c b/src/libs/zbxsysinfo/linux/diskspace.c
+index e6bb828..5ce0e25 100644
+--- a/src/libs/zbxsysinfo/linux/diskspace.c
++++ b/src/libs/zbxsysinfo/linux/diskspace.c
+@@ -125,7 +125,11 @@ int	VFS_FS_DISCOVERY(AGENT_REQUEST *request, AGENT_RESULT *result)
+ 	FILE		*f;
+ 	struct zbx_json	j;
+ 
+-	if (NULL == (f = fopen("/proc/mounts", "r")))
++#ifdef HAVE_DOCKER
++  if (NULL == (f = fopen("/hostfs/proc/mounts", "r")))
++#else
++ 	if (NULL == (f = fopen("/proc/mounts", "r")))
++#endif
+ 	{
+ 		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open /proc/mounts: %s", zbx_strerror(errno)));
+ 		return SYSINFO_RET_FAIL;
+diff --git a/src/libs/zbxsysinfo/linux/hardware.h b/src/libs/zbxsysinfo/linux/hardware.h
+index de96de4..7b8691a 100644
+--- a/src/libs/zbxsysinfo/linux/hardware.h
++++ b/src/libs/zbxsysinfo/linux/hardware.h
+@@ -24,7 +24,12 @@
+ #define SMBIOS_STATUS_ERROR	2
+ #define SMBIOS_STATUS_OK	3
+ 
++
++#ifdef HAVE_DOCKER
++#define DEV_MEM			"/hostfs/dev/mem"
++#else
+ #define DEV_MEM			"/dev/mem"
++#endif
+ #define SMBIOS_ENTRY_POINT_SIZE	0x20
+ #define DMI_HEADER_SIZE		4
+ 
+@@ -36,9 +41,18 @@
+ #define DMI_GET_MODEL		0x04
+ #define DMI_GET_SERIAL		0x08
+ 
++#ifdef HAVE_DOCKER
++#define CPU_MAX_FREQ_FILE	"/hostfs/sys/devices/system/cpu/cpu%d/cpufreq/cpuinfo_max_freq"
++#else
+ #define CPU_MAX_FREQ_FILE	"/sys/devices/system/cpu/cpu%d/cpufreq/cpuinfo_max_freq"
++#endif
+ 
++#ifdef HAVE_DOCKER
++#define HW_CPU_INFO_FILE	"/hostfs/proc/cpuinfo"
++#else
+ #define HW_CPU_INFO_FILE	"/proc/cpuinfo"
++#endif
++
+ #define HW_CPU_ALL_CPUS		-1
+ #define HW_CPU_SHOW_ALL		1
+ #define HW_CPU_SHOW_MAXFREQ	2
+diff --git a/src/libs/zbxsysinfo/linux/kernel.c b/src/libs/zbxsysinfo/linux/kernel.c
+index 3dde745..53a2cd8 100644
+--- a/src/libs/zbxsysinfo/linux/kernel.c
++++ b/src/libs/zbxsysinfo/linux/kernel.c
+@@ -42,8 +42,11 @@ static int	read_uint64_from_procfs(const char *path, zbx_uint64_t *value)
+ int	KERNEL_MAXFILES(AGENT_REQUEST *request, AGENT_RESULT *result)
+ {
+ 	zbx_uint64_t	value;
+-
+-	if (SYSINFO_RET_FAIL == read_uint64_from_procfs("/proc/sys/fs/file-max", &value))
++#ifdef HAVE_DOCKER
++	if (SYSINFO_RET_FAIL == read_uint64_from_procfs("/hostfs/proc/sys/fs/file-max", &value))
++#else
++ 	if (SYSINFO_RET_FAIL == read_uint64_from_procfs("/proc/sys/fs/file-max", &value))
++#endif
+ 	{
+ 		SET_MSG_RESULT(result, zbx_strdup(NULL, "Cannot obtain data from /proc/sys/fs/file-max."));
+ 		return SYSINFO_RET_FAIL;
+@@ -56,8 +59,11 @@ int	KERNEL_MAXFILES(AGENT_REQUEST *request, AGENT_RESULT *result)
+ int	KERNEL_MAXPROC(AGENT_REQUEST *request, AGENT_RESULT *result)
+ {
+ 	zbx_uint64_t	value;
+-
++#ifdef HAVE_DOCKER
++	if (SYSINFO_RET_FAIL == read_uint64_from_procfs("/hostfs/proc/sys/kernel/pid_max", &value))
++#else
+ 	if (SYSINFO_RET_FAIL == read_uint64_from_procfs("/proc/sys/kernel/pid_max", &value))
++#endif
+ 	{
+ 		SET_MSG_RESULT(result, zbx_strdup(NULL, "Cannot obtain data from /proc/sys/kernel/pid_max."));
+ 		return SYSINFO_RET_FAIL;
+diff --git a/src/libs/zbxsysinfo/linux/memory.c b/src/libs/zbxsysinfo/linux/memory.c
+index 50589d4..76a33ff 100644
+--- a/src/libs/zbxsysinfo/linux/memory.c
++++ b/src/libs/zbxsysinfo/linux/memory.c
+@@ -73,7 +73,11 @@ static int	VM_MEMORY_CACHED(AGENT_RESULT *result)
+ 	zbx_uint64_t	value;
+ 	int		res;
+ 
+-	if (NULL == (f = fopen("/proc/meminfo", "r")))
++#ifdef HAVE_DOCKER
++	if (NULL == (f = fopen("/hostfs/proc/meminfo", "r")))
++#else
++ 	if (NULL == (f = fopen("/proc/meminfo", "r")))
++#endif
+ 	{
+ 		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open /proc/meminfo: %s", zbx_strerror(errno)));
+ 		return SYSINFO_RET_FAIL;
+@@ -140,7 +144,11 @@ static int	VM_MEMORY_AVAILABLE(AGENT_RESULT *result)
+ 
+ 	/* try MemAvailable (present since Linux 3.14), falling back to a calculation based on sysinfo() and Cached */
+ 
+-	if (NULL == (f = fopen("/proc/meminfo", "r")))
++#ifdef HAVE_DOCKER
++	if (NULL == (f = fopen("/hostfs/proc/meminfo", "r")))
++#else
++ 	if (NULL == (f = fopen("/proc/meminfo", "r")))
++#endif
+ 	{
+ 		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open /proc/meminfo: %s", zbx_strerror(errno)));
+ 		return SYSINFO_RET_FAIL;
+diff --git a/src/libs/zbxsysinfo/linux/net.c b/src/libs/zbxsysinfo/linux/net.c
+index 5c77db2..c0a8ee2 100644
+--- a/src/libs/zbxsysinfo/linux/net.c
++++ b/src/libs/zbxsysinfo/linux/net.c
+@@ -211,7 +211,11 @@ static int	get_net_stat(const char *if_name, net_stat_t *result, char **error)
+ 		return SYSINFO_RET_FAIL;
+ 	}
+ 
+-	if (NULL == (f = fopen("/proc/net/dev", "r")))
++#ifdef HAVE_DOCKER
++	if (NULL == (f = fopen("/hostfs/proc/1/net/dev", "r")))
++#else
++  if (NULL == (f = fopen("/proc/net/dev", "r")))
++#endif
+ 	{
+ 		*error = zbx_dsprintf(NULL, "Cannot open /proc/net/dev: %s", zbx_strerror(errno));
+ 		return SYSINFO_RET_FAIL;
+@@ -527,8 +531,12 @@ int	NET_IF_DISCOVERY(AGENT_REQUEST *request, AGENT_RESULT *result)
+ 	FILE		*f;
+ 	struct zbx_json	j;
+ 
+-	if (NULL == (f = fopen("/proc/net/dev", "r")))
+-	{
++#ifdef HAVE_DOCKER
++  if (NULL == (f = fopen("/hostfs/proc/net/dev", "r")))
++#else
++  if (NULL == (f = fopen("/proc/net/dev", "r")))
++#endif
++  {
+ 		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open /proc/net/dev: %s", zbx_strerror(errno)));
+ 		return SYSINFO_RET_FAIL;
+ 	}
+@@ -632,7 +640,11 @@ int	NET_TCP_LISTEN(AGENT_REQUEST *request, AGENT_RESULT *result)
+ #endif
+ 		buffer = zbx_malloc(NULL, buffer_alloc);
+ 
++#ifdef HAVE_DOCKER
++	  if (0 < (n = proc_read_tcp_listen("/hostfs/proc/1/net/tcp", &buffer, &buffer_alloc)))
++#else
+ 		if (0 < (n = proc_read_tcp_listen("/proc/net/tcp", &buffer, &buffer_alloc)))
++#endif
+ 		{
+ 			ret = SYSINFO_RET_OK;
+ 
+@@ -644,8 +656,11 @@ int	NET_TCP_LISTEN(AGENT_REQUEST *request, AGENT_RESULT *result)
+ 				goto out;
+ 			}
+ 		}
+-
++#ifdef HAVE_DOCKER
++    if (0 < (n = proc_read_tcp_listen("/hostfs/proc/1/net/tcp6", &buffer, &buffer_alloc)))
++#else
+ 		if (0 < (n = proc_read_tcp_listen("/proc/net/tcp6", &buffer, &buffer_alloc)))
++#endif
+ 		{
+ 			ret = SYSINFO_RET_OK;
+ 
+@@ -688,7 +703,11 @@ int	NET_UDP_LISTEN(AGENT_REQUEST *request, AGENT_RESULT *result)
+ 
+ 	buffer = zbx_malloc(NULL, buffer_alloc);
+ 
++#ifdef HAVE_DOCKER
++	if (0 < (n = proc_read_file("/hostfs/proc/1/net/udp", &buffer, &buffer_alloc)))
++#else
+ 	if (0 < (n = proc_read_file("/proc/net/udp", &buffer, &buffer_alloc)))
++#endif
+ 	{
+ 		ret = SYSINFO_RET_OK;
+ 
+@@ -703,7 +722,11 @@ int	NET_UDP_LISTEN(AGENT_REQUEST *request, AGENT_RESULT *result)
+ 		}
+ 	}
+ 
++#ifdef HAVE_DOCKER
++	if (0 < (n = proc_read_file("/hostfs/proc/1/net/udp6", &buffer, &buffer_alloc)))
++#else
+ 	if (0 < (n = proc_read_file("/proc/net/udp6", &buffer, &buffer_alloc)))
++#endif
+ 	{
+ 		ret = SYSINFO_RET_OK;
+ 
+diff --git a/src/libs/zbxsysinfo/linux/proc.c b/src/libs/zbxsysinfo/linux/proc.c
+index 090fcc6..fd3f535 100644
+--- a/src/libs/zbxsysinfo/linux/proc.c
++++ b/src/libs/zbxsysinfo/linux/proc.c
+@@ -323,7 +323,11 @@ static int	get_total_memory(zbx_uint64_t *total_memory)
+ 	FILE	*f;
+ 	int	ret = FAIL;
+ 
+-	if (NULL != (f = fopen("/proc/meminfo", "r")))
++#ifdef HAVE_DOCKER
++  if (NULL != (f = fopen("/hostfs/proc/meminfo", "r")))
++#else
++  if (NULL != (f = fopen("/proc/meminfo", "r")))
++#endif
+ 	{
+ 		ret = byte_value_from_proc_file(f, "MemTotal:", NULL, total_memory);
+ 		zbx_fclose(f);
+@@ -506,7 +510,11 @@ int	PROC_MEM(AGENT_REQUEST *request, AGENT_RESULT *result)
+ 		}
+ 	}
+ 
+-	if (NULL == (dir = opendir("/proc")))
++#ifdef HAVE_DOCKER
++ 	if (NULL == (dir = opendir("/hostfs/proc")))
++#else
++ 	if (NULL == (dir = opendir("/proc")))
++#endif
+ 	{
+ 		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open /proc: %s", zbx_strerror(errno)));
+ 		return SYSINFO_RET_FAIL;
+@@ -520,12 +528,20 @@ int	PROC_MEM(AGENT_REQUEST *request, AGENT_RESULT *result)
+ 		if (0 == strcmp(entries->d_name, "self"))
+ 			continue;
+ 
+-		zbx_snprintf(tmp, sizeof(tmp), "/proc/%s/cmdline", entries->d_name);
++#ifdef HAVE_DOCKER
++    zbx_snprintf(tmp, sizeof(tmp), "/hostfs/proc/%s/cmdline", entries->d_name);
++#else
++    zbx_snprintf(tmp, sizeof(tmp), "/proc/%s/cmdline", entries->d_name);
++#endif
+ 
+ 		if (NULL == (f_cmd = fopen(tmp, "r")))
+ 			continue;
+ 
++#ifdef HAVE_DOCKER
++		zbx_snprintf(tmp, sizeof(tmp), "/hostfs/proc/%s/status", entries->d_name);
++#else
+ 		zbx_snprintf(tmp, sizeof(tmp), "/proc/%s/status", entries->d_name);
++#endif
+ 
+ 		if (NULL == (f_stat = fopen(tmp, "r")))
+ 			continue;
+@@ -768,8 +784,11 @@ int	PROC_NUM(AGENT_REQUEST *request, AGENT_RESULT *result)
+ 
+ 	if (1 == invalid_user)	/* handle 0 for non-existent user after all parameters have been parsed and validated */
+ 		goto out;
+-
++#ifdef HAVE_DOCKER
++ 	if (NULL == (dir = opendir("/hostfs/proc")))
++#else
+ 	if (NULL == (dir = opendir("/proc")))
++#endif
+ 	{
+ 		SET_MSG_RESULT(result, zbx_dsprintf(NULL, "Cannot open /proc: %s", zbx_strerror(errno)));
+ 		return SYSINFO_RET_FAIL;
+@@ -783,12 +802,20 @@ int	PROC_NUM(AGENT_REQUEST *request, AGENT_RESULT *result)
+ 		if (0 == strcmp(entries->d_name, "self"))
+ 			continue;
+ 
++#ifdef HAVE_DOCKER
++		zbx_snprintf(tmp, sizeof(tmp), "/hostfs/proc/%s/cmdline", entries->d_name);
++#else
+ 		zbx_snprintf(tmp, sizeof(tmp), "/proc/%s/cmdline", entries->d_name);
++#endif
+ 
+ 		if (NULL == (f_cmd = fopen(tmp, "r")))
+ 			continue;
+ 
++#ifdef HAVE_DOCKER
++		zbx_snprintf(tmp, sizeof(tmp), "/hostfs/proc/%s/status", entries->d_name);
++#else
+ 		zbx_snprintf(tmp, sizeof(tmp), "/proc/%s/status", entries->d_name);
++#endif
+ 
+ 		if (NULL == (f_stat = fopen(tmp, "r")))
+ 			continue;
+@@ -837,7 +864,11 @@ static int	proc_get_process_name(pid_t pid, char **procname)
+ 	int	n, fd;
+ 	char	tmp[MAX_STRING_LEN], *pend, *pstart;
+ 
++#ifdef HAVE_DOCKER
++	zbx_snprintf(tmp, sizeof(tmp), "/hostfs/proc/%d/stat", (int)pid);
++#else
+ 	zbx_snprintf(tmp, sizeof(tmp), "/proc/%d/stat", (int)pid);
++#endif
+ 
+ 	if (-1 == (fd = open(tmp, O_RDONLY)))
+ 		return FAIL;
+@@ -885,7 +916,12 @@ static int	proc_get_process_cmdline(pid_t pid, char **cmdline, size_t *cmdline_n
+ 	size_t	cmdline_alloc = ZBX_KIBIBYTE;
+ 
+ 	*cmdline_nbytes = 0;
++
++#ifdef HAVE_DOCKER
++	zbx_snprintf(tmp, sizeof(tmp), "/hostfs/proc/%d/cmdline", (int)pid);
++#else
+ 	zbx_snprintf(tmp, sizeof(tmp), "/proc/%d/cmdline", (int)pid);
++#endif
+ 
+ 	if (-1 == (fd = open(tmp, O_RDONLY)))
+ 		return FAIL;
+@@ -946,7 +982,11 @@ static int	proc_get_process_uid(pid_t pid, uid_t *uid)
+ 	char		tmp[MAX_STRING_LEN];
+ 	zbx_stat_t	st;
+ 
+-	zbx_snprintf(tmp, sizeof(tmp), "/proc/%d", (int)pid);
++#ifdef HAVE_DOCKER
++  zbx_snprintf(tmp, sizeof(tmp), "/hostfs/proc/%d", (int)pid);
++#else
++  zbx_snprintf(tmp, sizeof(tmp), "/proc/%d", (int)pid);
++#endif
+ 
+ 	if (0 != zbx_stat(tmp, &st))
+ 		return FAIL;
+@@ -1002,8 +1042,11 @@ static int	proc_read_cpu_util(zbx_procstat_util_t *procutil)
+ {
+ 	int	n, offset, fd, ret = SUCCEED;
+ 	char	tmp[MAX_STRING_LEN], *ptr;
+-
+-	zbx_snprintf(tmp, sizeof(tmp), "/proc/%d/stat", (int)procutil->pid);
++#ifdef HAVE_DOCKER
++  zbx_snprintf(tmp, sizeof(tmp), "/hostfs/proc/%d/stat", (int)procutil->pid);
++#else
++  zbx_snprintf(tmp, sizeof(tmp), "/proc/%d/stat", (int)procutil->pid);
++#endif
+ 
+ 	if (-1 == (fd = open(tmp, O_RDONLY)))
+ 		return -errno;
+@@ -1247,7 +1290,11 @@ int	zbx_proc_get_processes(zbx_vector_ptr_t *processes, unsigned int flags)
+ 
+ 	zabbix_log(LOG_LEVEL_TRACE, "In %s()", __function_name);
+ 
++#ifdef HAVE_DOCKER
++	if (NULL == (dir = opendir("/hostfs/proc")))
++#else
+ 	if (NULL == (dir = opendir("/proc")))
++#endif
+ 		goto out;
+ 
+ 	while (NULL != (entries = readdir(dir)))
+diff --git a/src/libs/zbxsysinfo/linux/sensors.c b/src/libs/zbxsysinfo/linux/sensors.c
+index c19f153..9bcd901 100644
+--- a/src/libs/zbxsysinfo/linux/sensors.c
++++ b/src/libs/zbxsysinfo/linux/sensors.c
+@@ -21,9 +21,17 @@
+ #include "zbxregexp.h"
+ 
+ #ifdef KERNEL_2_4
++#ifdef HAVE_DOCKER
++#define DEVICE_DIR	"/hostfs/proc/sys/dev/sensors"
++#else
+ #define DEVICE_DIR	"/proc/sys/dev/sensors"
++#endif
++#else
++#ifdef HAVE_DOCKER
++#define DEVICE_DIR	"/hostfs/sys/class/hwmon"
+ #else
+ #define DEVICE_DIR	"/sys/class/hwmon"
++#endif
+ static char	*locations[] = {"", "/device", NULL};
+ #endif
+ 
+@@ -181,7 +189,11 @@ static int	get_device_info(const char *dev_path, const char *dev_name, char *dev
+ 		}
+ 		else
+ 		{
+-			zbx_snprintf(bus_path, sizeof(bus_path), "/sys/class/i2c-adapter/i2c-%d", bus_i2c);
++#ifdef HAVE_DOCKER
++      zbx_snprintf(bus_path, sizeof(bus_path), "/hostfs/sys/class/i2c-adapter/i2c-%d", bus_i2c);
++#else
++      zbx_snprintf(bus_path, sizeof(bus_path), "/sys/class/i2c-adapter/i2c-%d", bus_i2c);
++#endif
+ 			bus_subfolder = sysfs_read_attr(bus_path, &bus_attr);
+ 
+ 			if (NULL != bus_subfolder && '\0' != *bus_subfolder)
+diff --git a/src/libs/zbxsysinfo/linux/software.h b/src/libs/zbxsysinfo/linux/software.h
+index 6a7747d..096fb5c 100644
+--- a/src/libs/zbxsysinfo/linux/software.h
++++ b/src/libs/zbxsysinfo/linux/software.h
+@@ -20,9 +20,15 @@
+ #ifndef ZABBIX_SOFTWARE_H
+ #define ZABBIX_SOFTWARE_H
+ 
+-#define SW_OS_FULL	"/proc/version"
++#ifdef HAVE_DOCKER
++#define SW_OS_FULL	"/hostfs/proc/version"
++#define SW_OS_SHORT "/hostfs/proc/version_signature"
++#define SW_OS_NAME  "/hostfs/etc/issue.net"
++#else
++#define SW_OS_FULL  "/proc/version"
+ #define SW_OS_SHORT	"/proc/version_signature"
+ #define SW_OS_NAME	"/etc/issue.net"
++#endif
+ 
+ typedef struct
+ {
+diff --git a/src/libs/zbxsysinfo/linux/swap.c b/src/libs/zbxsysinfo/linux/swap.c
+index eaaf0e5..2c73666 100644
+--- a/src/libs/zbxsysinfo/linux/swap.c
++++ b/src/libs/zbxsysinfo/linux/swap.c
+@@ -78,7 +78,13 @@ typedef struct
+ swap_stat_t;
+ 
+ #ifdef KERNEL_2_4
++
++#ifdef HAVE_DOCKER
++#	define INFO_FILE_NAME	"/hostfs/proc/partitions"
++#else
+ #	define INFO_FILE_NAME	"/proc/partitions"
++#endif
++
+ #	define PARSE(line)								\
+ 											\
+ 		if (6 != sscanf(line, "%d %d %*d %*s "					\
+@@ -158,9 +164,17 @@ static int	get_swap_pages(swap_stat_t *result)
+ 	FILE	*f;
+ 
+ #ifdef KERNEL_2_4
++#ifdef HAVE_DOCKER
++  if (NULL != (f = fopen("/hostfs/proc/stat", "r")))
++#else
+ 	if (NULL != (f = fopen("/proc/stat", "r")))
++#endif
++#else
++#ifdef HAVE_DOCKER
++	if (NULL != (f = fopen("/hostfs/proc/vmstat", "r")))
+ #else
+-	if (NULL != (f = fopen("/proc/vmstat", "r")))
++  if (NULL != (f = fopen("/proc/vmstat", "r")))
++#endif
+ #endif
+ 	{
+ 		while (NULL != fgets(line, sizeof(line), f))
+@@ -215,15 +229,27 @@ static int	get_swap_stat(const char *swapdev, swap_stat_t *result)
+ 		ret = get_swap_pages(result);
+ 		swapdev = NULL;
+ 	}
+-	else if (0 != strncmp(swapdev, "/dev/", 5))
++#ifdef HAVE_DOCKER
++  else if (0 != strncmp(swapdev, "/hostfs/dev/", 5))
++#else
++ 	else if (0 != strncmp(swapdev, "/dev/", 5))
++#endif
+ 		offset = 5;
+ 
++#ifdef HAVE_DOCKER
++	if (NULL == (f = fopen("/hostfs/proc/swaps", "r")))
++#else
+ 	if (NULL == (f = fopen("/proc/swaps", "r")))
++#endif
+ 		return ret;
+ 
+ 	while (NULL != fgets(line, sizeof(line), f))
+ 	{
+-		if (0 != strncmp(line, "/dev/", 5))
++#ifdef HAVE_DOCKER
++    if (0 != strncmp(line, "/hostfs/dev/", 5))
++#else
++ 	  if (0 != strncmp(line, "/dev/", 5))
++#endif
+ 			continue;
+ 
+ 		if (NULL == (s = strchr(line, ' ')))
+diff --git a/src/zabbix_agent/cpustat.c b/src/zabbix_agent/cpustat.c
+index 6ec1fd8..b472920 100644
+--- a/src/zabbix_agent/cpustat.c
++++ b/src/zabbix_agent/cpustat.c
+@@ -314,7 +314,12 @@ static void	update_cpustats(ZBX_CPUS_STAT_DATA *pcpus)
+ 	FILE		*file;
+ 	char		line[1024];
+ 	unsigned char	*cpu_status = NULL;
++
++#ifdef HAVE_DOCKER
++	const char	*filename = "/hostfs/proc/stat";
++#else
+ 	const char	*filename = "/proc/stat";
++#endif
+ 
+ #elif defined(HAVE_SYS_PSTAT_H)
+ 
+diff --git a/src/zabbix_agent/stats.c b/src/zabbix_agent/stats.c
+index c644ac0..0334158 100644
+--- a/src/zabbix_agent/stats.c
++++ b/src/zabbix_agent/stats.c
+@@ -101,9 +101,12 @@ static int	zbx_get_cpu_num()
+ #elif defined(HAVE_PROC_CPUINFO)
+ 	FILE	*f = NULL;
+ 	int	ncpu = 0;
+-
+-	if (NULL == (file = fopen("/proc/cpuinfo", "r")))
+-		goto return_one;
++#ifdef HAVE_DOCKER
++  if (NULL == (file = fopen("/hostfs/proc/cpuinfo", "r")))
++#else
++  if (NULL == (file = fopen("/proc/cpuinfo", "r")))
++#endif
++  	goto return_one;
+ 
+ 	while (NULL != fgets(line, 1024, file))
+ 	{
+-- 
+2.7.4 (Apple Git-66)
+
