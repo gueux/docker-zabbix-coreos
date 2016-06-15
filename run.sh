@@ -19,6 +19,8 @@ if [ -z "$ZBX_Hostname" ]; then
        ZBX_Hostname=$(hostname -f)
    fi
 fi
+CONF_FILE=/etc/zabbix/zabbix_agentd.conf
+cp /etc/zabbix/zabbix_agentd.dist.conf ${CONF_FILE}
 
 for VARIABLE_NAME in $(compgen -A variable)
 do
@@ -26,7 +28,15 @@ do
   then
     OPTION_NAME=${VARIABLE_NAME#ZBX_}
     OPTION_VALUE=${!VARIABLE_NAME}
-    sed -i "s/^$OPTION_NAME\=.*/$OPTION_NAME\=$OPTION_VALUE/" /etc/zabbix/zabbix_agentd.conf
+    if grep -q "^${OPTION_NAME}=" ${CONF_FILE}
+      then
+      sed -i "s|^$OPTION_NAME\=.*|$OPTION_NAME\=$OPTION_VALUE|" ${CONF_FILE}
+    elif grep -q "^# ${OPTION_NAME}=" ${CONF_FILE}
+      then
+      sed -i "s|^\# $OPTION_NAME\=.*|$OPTION_NAME\=$OPTION_VALUE|" ${CONF_FILE}
+    else
+      echo "$OPTION_NAME=$OPTION_VALUE" >> ${CONF_FILE}
+    fi
   fi
 done
 
