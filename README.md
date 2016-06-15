@@ -6,7 +6,7 @@ The Zabbix agent has been patched to read system informations from these directo
 
 * `/hostfs` mapped from `/` on the real host
 
-You can access the Docker REST API through the socket file */coreos/var/run/docker.sock*
+You can access the Docker REST API through the socket file */hostfs/var/run/docker.sock*
 
 ## Usage
 
@@ -38,17 +38,17 @@ If you don't want to use the auto-registration, you must add each node in the fr
 To create the container:
 
     # docker run -d -p 10050:10050 -u 0 -c 1024 -m 64M --memory-swap=-1 \
-        -v /:/hostfs \
+        -v /:/hostfs:ro \
+        -v /var/run/docker.sock:/hostfs/var/run/docker.sock \
         -e ZBX_Server=<server> \
-        -v /var/run/docker.sock:/coreos/var/run/docker.sock \
         --name zabbix-agent-docker bhuisgen/docker-zabbix-coreos
         
 If you want to access directly to the network stack of the node, you can use the *host* network mode but it is less secure:
 
     # docker run -d -p 10050:10050 -u 0 -c 1024 -m 64M --memory-swap=-1 --net="host" \
-        -v /:/hostfs \
+        -v /:/hostfs:ro \
+        -v /var/run/docker.sock:/hostfs/var/run/docker.sock \
         -e ZBX_Server=<server> \
-        -v /var/run/docker.sock:/coreos/var/run/docker.sock \
         --name zabbix-agent-docker bhuisgen/docker-zabbix-coreos
         
 
