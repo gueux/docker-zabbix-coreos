@@ -4,9 +4,7 @@ This Docker container provides a patched Zabbix agent to monitor a real CoreOS s
 
 The Zabbix agent has been patched to read system informations from these directories:
 
-* */coreos/proc* mapped from */proc* on the real host
-* */coreos/dev* mapped from */dev* on the real host
-* */coreos/sys* mapped from */sys* on the real host
+* `/hostfs` mapped from `/` on the real host
 
 You can access the Docker REST API through the socket file */coreos/var/run/docker.sock*
 
@@ -40,25 +38,26 @@ If you don't want to use the auto-registration, you must add each node in the fr
 To create the container:
 
     # docker run -d -p 10050:10050 -u 0 -c 1024 -m 64M --memory-swap=-1 \
-        -v /proc:/coreos/proc:ro -v /sys:/coreos/sys:ro -v /dev:/coreos/dev:ro \
+        -v /:/hostfs \
+        -e ZBX_Server=<server> \
         -v /var/run/docker.sock:/coreos/var/run/docker.sock \
-        --name zabbix-coreos bhuisgen/docker-zabbix-coreos <SERVER> <HOSTMETADATA> [<HOSTNAME>]
-
+        --name zabbix-agent-docker bhuisgen/docker-zabbix-coreos
+        
 If you want to access directly to the network stack of the node, you can use the *host* network mode but it is less secure:
 
     # docker run -d -p 10050:10050 -u 0 -c 1024 -m 64M --memory-swap=-1 --net="host" \
-        -v /proc:/coreos/proc:ro -v /sys:/coreos/sys:ro -v /dev:/coreos/dev:ro \
+        -v /:/hostfs \
+        -e ZBX_Server=<server> \
         -v /var/run/docker.sock:/coreos/var/run/docker.sock \
-        --name zabbix-coreos bhuisgen/docker-zabbix-coreos <SERVER> <HOSTMETADATA> [<HOSTNAME>]
-
-The needed options are:
-
-* *SERVER* (required): the IP address of the Zabbix server
-* *HOSTMETADATA* (required): the metadata value shared by all servers on the same cluster. This value will match the autoregistration action
-* *HOSTNAME* (optional): the hostname used by this agent in the zabbix frontend. If no value is given, the machine id of the host will be used
+        --name zabbix-agent-docker bhuisgen/docker-zabbix-coreos
+        
 
 The agent will start and the auto-registration will add your agent if a auto-registration action is matched for your host metadata. If you don't want to auto-register your nodes, you need to specify the hostname value to use.
 
+#### Environment configuration variables
+
+You can use any [agent config variable](https://www.zabbix.com/documentation/3.0/manual/appendix/config/zabbix_agentd), just add prefix `ZBX_`.
+If you don't specify custom settings, then default Zabbix agent settings will be used.
 #### Fleet
 
 Copy this file:
