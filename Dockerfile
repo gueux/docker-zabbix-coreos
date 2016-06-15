@@ -51,11 +51,12 @@ RUN cd /tmp \
 COPY files/zabbix-docker-3.0.3.patch /tmp/zabbix-docker-3.0.3.patch
 RUN cd /tmp/zabbix-3.0.3 \
   && patch --verbose -p1 < /tmp/zabbix-docker-3.0.3.patch \
-  && ./configure --prefix=/opt/zabbix --sysconfdir=/etc/zabbix --enable-agent --enable-docker --with-libcurl \
+  && ./configure --prefix=/usr --sysconfdir=/etc/zabbix --enable-agent --enable-docker --with-libcurl \
   && make install
 
 # Create user
-RUN useradd -r -s /bin/bash -d /opt/zabbix zabbix && \
+RUN mkdir /var/lib/zabbix && \
+    useradd -r -s /bin/bash -d /var/lib/zabbix zabbix && \
     usermod -a -G adm zabbix
 
 # Add configs user
@@ -63,9 +64,8 @@ COPY etc/zabbix/ /etc/zabbix/
 COPY etc/supervisor/ /etc/supervisor/
 COPY etc/sudoers.d/zabbix etc/sudoers.d/zabbix
 RUN chmod 400 /etc/sudoers.d/zabbix && \
-    chown -R zabbix:zabbix /opt/zabbix && \
+    chown -R zabbix:zabbix /var/lib/zabbix && \
     chown -R zabbix:zabbix /etc/zabbix
-
 
 # Cleanup
 RUN apt-get -f -y purge wget \
