@@ -20,7 +20,7 @@ print "\t\"data\":[\n\n";
 for (`cat /proc/diskstats`)
 {
    my ($major,$minor,$disk) = m/^\s*([0-9]+)\s+([0-9]+)\s+(\S+)\s.*$/;
-   my $dmnamefile = "/coreos/sys/dev/block/$major:$minor/dm/name";
+   my $dmnamefile = "/hostfs/sys/dev/block/$major:$minor/dm/name";
    my $vmid= "";
    my $vmname = "";
    my $dmname = $disk;

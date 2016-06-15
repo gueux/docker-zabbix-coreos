@@ -16,13 +16,13 @@ ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US.UTF-8
 ENV TERM xterm
 
+# Install dependensies
 RUN apt-get -y install \
         ucf \
         procps \
         iproute \
-        supervisor
-COPY etc/supervisor/ /etc/supervisor/
-RUN apt-get -y install --no-install-recommends \
+        supervisor && \
+    apt-get -y install --no-install-recommends \
         curl \
         jq \
         libcurl3 \
@@ -43,27 +43,32 @@ RUN apt-get -y install --no-install-recommends \
         libiksemel-dev \
         libsnmp-dev
 
+# Create user
+RUN mkdir /opt/zabbix && \
+    mkdir /etc/zabbix && \
+    useradd -r -s /bin/bash -d /opt/zabbix zabbix && \
+    chown -R zabbix:zabbix /opt/zabbix && \
+    chown -R zabbix:zabbix /etc/zabbix && \
+    usermod -a -G adm zabbix
+
+# Download source
 RUN cd /tmp \
-  && wget -O zabbix-3.0.3.tar.gz 'http://pilotfiber.dl.sourceforge.net/project/zabbix/ZABBIX%20Latest%20Stable/3.0.3/zabbix-3.0.3.tar.gz' \
+  && wget -O zabbix-3.0.3.tar.gz 'http://downloads.sourceforge.net/project/zabbix/ZABBIX%20Latest%20Stable/3.0.3/zabbix-3.0.3.tar.gz' \
   && tar -zxvf zabbix-3.0.3.tar.gz
+
 COPY files/zabbix-docker-3.0.3.patch /tmp/zabbix-docker-3.0.3.patch
 RUN cd /tmp/zabbix-3.0.3 \
   && patch --verbose -p1 < /tmp/zabbix-docker-3.0.3.patch \
-  && ./configure -v --prefix=/opt/zabbix --enable-docker --enable-agent --with-libcurl \
+  && ./configure -v --prefix=/opt/zabbix --sysconfdir=/etc/zabbix --enable-docker --enable-agent --with-libcurl \
   && make install
 
+# Add configs user
 COPY etc/zabbix/ /etc/zabbix/
-RUN mkdir -p /var/lib/zabbix && \
-    useradd -r -s /bin/bash zabbix && \
-    chmod 700 /var/lib/zabbix && \
-    chown -R zabbix:zabbix /var/lib/zabbix && \
-    chown -R zabbix:zabbix /opt/zabbix && \
-    chown -R zabbix:zabbix /etc/zabbix && \
-    usermod -d /var/lib/zabbix zabbix && \
-    usermod -a -G adm zabbix
-
+COPY etc/supervisor/ /etc/supervisor/
 COPY etc/sudoers.d/zabbix etc/sudoers.d/zabbix
 RUN chmod 400 /etc/sudoers.d/zabbix
+
+# Cleanup
 RUN apt-get -f -y purge wget \
   patch \
   build-essential \
