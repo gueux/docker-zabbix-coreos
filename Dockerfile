@@ -43,14 +43,6 @@ RUN apt-get -y install \
         libiksemel-dev \
         libsnmp-dev
 
-# Create user
-RUN mkdir /opt/zabbix && \
-    mkdir /etc/zabbix && \
-    useradd -r -s /bin/bash -d /opt/zabbix zabbix && \
-    chown -R zabbix:zabbix /opt/zabbix && \
-    chown -R zabbix:zabbix /etc/zabbix && \
-    usermod -a -G adm zabbix
-
 # Download source
 RUN cd /tmp \
   && wget -O zabbix-3.0.3.tar.gz 'http://downloads.sourceforge.net/project/zabbix/ZABBIX%20Latest%20Stable/3.0.3/zabbix-3.0.3.tar.gz' \
@@ -59,8 +51,14 @@ RUN cd /tmp \
 COPY files/zabbix-docker-3.0.3.patch /tmp/zabbix-docker-3.0.3.patch
 RUN cd /tmp/zabbix-3.0.3 \
   && patch --verbose -p1 < /tmp/zabbix-docker-3.0.3.patch \
-  && ./configure -v --prefix=/opt/zabbix --sysconfdir=/etc/zabbix --enable-docker --enable-agent --with-libcurl \
+  && ./configure --prefix=/opt/zabbix --sysconfdir=/etc/zabbix --enable-agent --enable-docker --with-libcurl \
   && make install
+
+# Create user
+RUN useradd -r -s /bin/bash -d /opt/zabbix zabbix && \
+    chown -R zabbix:zabbix /opt/zabbix && \
+    chown -R zabbix:zabbix /etc/zabbix && \
+    usermod -a -G adm zabbix
 
 # Add configs user
 COPY etc/zabbix/ /etc/zabbix/
