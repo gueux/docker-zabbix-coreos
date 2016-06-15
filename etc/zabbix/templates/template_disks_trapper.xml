@@ -9,8 +9,8 @@
     </groups>
     <templates>
         <template>
-            <template>Template Disk Performance</template>
-            <name>Template Disk Performance</name>
+            <template>Template Disk Performance Trapper</template>
+            <name>Template Disk Performance Trapper</name>
             <description/>
             <groups>
                 <group>
@@ -26,7 +26,7 @@
             <discovery_rules>
                 <discovery_rule>
                     <name>Disk discovery</name>
-                    <type>0</type>
+                    <type>2</type>
                     <snmp_community/>
                     <snmp_oid/>
                     <key>custom.vfs.discover_disks</key>
@@ -55,7 +55,7 @@
                     <item_prototypes>
                         <item_prototype>
                             <name>Disk:$1:IO:Currently Active</name>
-                            <type>0</type>
+                            <type>2</type>
                             <snmp_community/>
                             <multiplier>0</multiplier>
                             <snmp_oid/>
@@ -100,7 +100,7 @@
                         </item_prototype>
                         <item_prototype>
                             <name>Disk:$1:IO:ms</name>
-                            <type>0</type>
+                            <type>2</type>
                             <snmp_community/>
                             <multiplier>0</multiplier>
                             <snmp_oid/>
@@ -144,7 +144,7 @@
                         </item_prototype>
                         <item_prototype>
                             <name>Disk:$1:IO:Weight:ms</name>
-                            <type>0</type>
+                            <type>2</type>
                             <snmp_community/>
                             <multiplier>0</multiplier>
                             <snmp_oid/>
@@ -189,7 +189,7 @@
                         </item_prototype>
                         <item_prototype>
                             <name>Disk:$1:Read:Bytes/sec</name>
-                            <type>0</type>
+                            <type>2</type>
                             <snmp_community/>
                             <multiplier>1</multiplier>
                             <snmp_oid/>
@@ -233,7 +233,7 @@
                         </item_prototype>
                         <item_prototype>
                             <name>Disk:$1:Read:Bytes/sec [z]</name>
-                            <type>0</type>
+                            <type>2</type>
                             <snmp_community/>
                             <multiplier>1</multiplier>
                             <snmp_oid/>
@@ -276,7 +276,7 @@
                         </item_prototype>
                         <item_prototype>
                             <name>Disk:$1:Read:Merged</name>
-                            <type>0</type>
+                            <type>2</type>
                             <snmp_community/>
                             <multiplier>0</multiplier>
                             <snmp_oid/>
@@ -321,7 +321,7 @@
                         </item_prototype>
                         <item_prototype>
                             <name>Disk:$1:Read:ms</name>
-                            <type>0</type>
+                            <type>2</type>
                             <snmp_community/>
                             <multiplier>0</multiplier>
                             <snmp_oid/>
@@ -366,7 +366,7 @@
                         </item_prototype>
                         <item_prototype>
                             <name>Disk:$1:Read:ms [z]</name>
-                            <type>0</type>
+                            <type>2</type>
                             <snmp_community/>
                             <multiplier>0</multiplier>
                             <snmp_oid/>
@@ -409,7 +409,7 @@
                         </item_prototype>
                         <item_prototype>
                             <name>Disk:$1:Read:Ops per second</name>
-                            <type>0</type>
+                            <type>2</type>
                             <snmp_community/>
                             <multiplier>0</multiplier>
                             <snmp_oid/>
@@ -453,7 +453,7 @@
                         </item_prototype>
                         <item_prototype>
                             <name>Disk:$1:Read:Ops per second [z]</name>
-                            <type>0</type>
+                            <type>2</type>
                             <snmp_community/>
                             <multiplier>0</multiplier>
                             <snmp_oid/>
@@ -496,7 +496,7 @@
                         </item_prototype>
                         <item_prototype>
                             <name>Disk:$1:Write:Bytes/sec</name>
-                            <type>0</type>
+                            <type>2</type>
                             <snmp_community/>
                             <multiplier>1</multiplier>
                             <snmp_oid/>
@@ -540,7 +540,7 @@
                         </item_prototype>
                         <item_prototype>
                             <name>Disk:$1:Write:Bytes/sec [z]</name>
-                            <type>0</type>
+                            <type>2</type>
                             <snmp_community/>
                             <multiplier>1</multiplier>
                             <snmp_oid/>
@@ -583,7 +583,7 @@
                         </item_prototype>
                         <item_prototype>
                             <name>Disk:$1:Write:Merged</name>
-                            <type>0</type>
+                            <type>2</type>
                             <snmp_community/>
                             <multiplier>0</multiplier>
                             <snmp_oid/>
@@ -628,7 +628,7 @@
                         </item_prototype>
                         <item_prototype>
                             <name>Disk:$1:Write:ms</name>
-                            <type>0</type>
+                            <type>2</type>
                             <snmp_community/>
                             <multiplier>0</multiplier>
                             <snmp_oid/>
@@ -673,7 +673,7 @@
                         </item_prototype>
                         <item_prototype>
                             <name>Disk:$1:Write:ms [z]</name>
-                            <type>0</type>
+                            <type>2</type>
                             <snmp_community/>
                             <multiplier>0</multiplier>
                             <snmp_oid/>
@@ -716,7 +716,7 @@
                         </item_prototype>
                         <item_prototype>
                             <name>Disk:$1:Write:Ops per second</name>
-                            <type>0</type>
+                            <type>2</type>
                             <snmp_community/>
                             <multiplier>0</multiplier>
                             <snmp_oid/>
@@ -760,7 +760,7 @@
                         </item_prototype>
                         <item_prototype>
                             <name>Disk:$1:Write:Ops per second [z]</name>
-                            <type>0</type>
+                            <type>2</type>
                             <snmp_community/>
                             <multiplier>0</multiplier>
                             <snmp_oid/>
@@ -830,7 +830,7 @@
                                     <calc_fnc>2</calc_fnc>
                                     <type>0</type>
                                     <item>
-                                        <host>Template Disk Performance</host>
+                                        <host>Template Disk Performance Trapper</host>
                                         <key>custom.vfs.dev.read.sectors[{#DEVICENAME}]</key>
                                     </item>
                                 </graph_item>
@@ -842,7 +842,7 @@
                                     <calc_fnc>2</calc_fnc>
                                     <type>0</type>
                                     <item>
-                                        <host>Template Disk Performance</host>
+                                        <host>Template Disk Performance Trapper</host>
                                         <key>custom.vfs.dev.write.sectors[{#DEVICENAME}]</key>
                                     </item>
                                 </graph_item>
@@ -874,7 +874,7 @@
                                     <calc_fnc>2</calc_fnc>
                                     <type>0</type>
                                     <item>
-                                        <host>Template Disk Performance</host>
+                                        <host>Template Disk Performance Trapper</host>
                                         <key>custom.vfs.dev.read.merged[{#DEVICENAME}]</key>
                                     </item>
                                 </graph_item>
@@ -886,7 +886,7 @@
                                     <calc_fnc>2</calc_fnc>
                                     <type>0</type>
                                     <item>
-                                        <host>Template Disk Performance</host>
+                                        <host>Template Disk Performance Trapper</host>
                                         <key>custom.vfs.dev.write.merged[{#DEVICENAME}]</key>
                                     </item>
                                 </graph_item>
@@ -918,7 +918,7 @@
                                     <calc_fnc>2</calc_fnc>
                                     <type>0</type>
                                     <item>
-                                        <host>Template Disk Performance</host>
+                                        <host>Template Disk Performance Trapper</host>
                                         <key>custom.vfs.dev.read.ops[{#DEVICENAME}]</key>
                                     </item>
                                 </graph_item>
@@ -930,7 +930,7 @@
                                     <calc_fnc>2</calc_fnc>
                                     <type>0</type>
                                     <item>
-                                        <host>Template Disk Performance</host>
+                                        <host>Template Disk Performance Trapper</host>
                                         <key>custom.vfs.dev.write.ops[{#DEVICENAME}]</key>
                                     </item>
                                 </graph_item>
@@ -962,7 +962,7 @@
                                     <calc_fnc>7</calc_fnc>
                                     <type>0</type>
                                     <item>
-                                        <host>Template Disk Performance</host>
+                                        <host>Template Disk Performance Trapper</host>
                                         <key>custom.vfs.dev.io.active[{#DEVICENAME}]</key>
                                     </item>
                                 </graph_item>
@@ -974,7 +974,7 @@
                                     <calc_fnc>7</calc_fnc>
                                     <type>0</type>
                                     <item>
-                                        <host>Template Disk Performance</host>
+                                        <host>Template Disk Performance Trapper</host>
                                         <key>custom.vfs.dev.read.sectors[{#DEVICENAME}]</key>
                                     </item>
                                 </graph_item>
@@ -986,7 +986,7 @@
                                     <calc_fnc>7</calc_fnc>
                                     <type>0</type>
                                     <item>
-                                        <host>Template Disk Performance</host>
+                                        <host>Template Disk Performance Trapper</host>
                                         <key>custom.vfs.dev.read.merged[{#DEVICENAME}]</key>
                                     </item>
                                 </graph_item>
@@ -998,7 +998,7 @@
                                     <calc_fnc>7</calc_fnc>
                                     <type>0</type>
                                     <item>
-                                        <host>Template Disk Performance</host>
+                                        <host>Template Disk Performance Trapper</host>
                                         <key>custom.vfs.dev.read.ops[{#DEVICENAME}]</key>
                                     </item>
                                 </graph_item>
@@ -1010,7 +1010,7 @@
                                     <calc_fnc>7</calc_fnc>
                                     <type>0</type>
                                     <item>
-                                        <host>Template Disk Performance</host>
+                                        <host>Template Disk Performance Trapper</host>
                                         <key>custom.vfs.dev.write.sectors[{#DEVICENAME}]</key>
                                     </item>
                                 </graph_item>
@@ -1022,7 +1022,7 @@
                                     <calc_fnc>7</calc_fnc>
                                     <type>0</type>
                                     <item>
-                                        <host>Template Disk Performance</host>
+                                        <host>Template Disk Performance Trapper</host>
                                         <key>custom.vfs.dev.write.merged[{#DEVICENAME}]</key>
                                     </item>
                                 </graph_item>
@@ -1034,7 +1034,7 @@
                                     <calc_fnc>7</calc_fnc>
                                     <type>0</type>
                                     <item>
-                                        <host>Template Disk Performance</host>
+                                        <host>Template Disk Performance Trapper</host>
                                         <key>custom.vfs.dev.write.ops[{#DEVICENAME}]</key>
                                     </item>
                                 </graph_item>

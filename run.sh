@@ -40,8 +40,29 @@ do
   fi
 done
 
-if [ -f "/etc/zabbix/$HOST.conf" ]; then
+if [ -f "/etc/zabbix/$HOST.conf" ]
+then
     cat "/etc/zabbix/$HOST.conf" >> /etc/zabbix/zabbix_agentd.conf
+fi
+
+# Enable/Disable Docker trapper
+DOCKER_TRAPPER=${DOCKER_TRAPPER:-true}
+if [ ! -z ${DOCKER_TRAPPER} ]
+then
+  cp /etc/supervisor/conf.d-avilable/zabbix-trapper-disks.conf /etc/supervisor/conf.d/zabbix-trapper-disks.conf
+elif [ -f /etc/supervisor/conf.d/zabbix-trapper-disks.conf ]
+then
+  rm /etc/supervisor/conf.d/zabbix-trapper-disks.conf
+fi
+
+# Enable/Disable Disks trapper
+DISKS_TRAPPER=${DISKS_TRAPPER:-true}
+if [ ! -z ${DISKS_TRAPPER} ]
+then
+  cp /etc/supervisor/conf.d-avilable/zabbix-trapper-docker.conf /etc/supervisor/conf.d/zabbix-trapper-docker.conf
+elif [ -f ]
+then
+  rm /etc/supervisor/conf.d/zabbix-trapper-docker.conf
 fi
 
 exec "$@"

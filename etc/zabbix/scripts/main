@@ -1,0 +1,12 @@
+
+export DOCKER_SOCKET=${DOCKER_SOCKET:-/hostfs/var/run/docker.sock}
+export ZABBIX_SENDER=${ZABBIX_SENDER:-/usr/bin/zabbix_sender}
+export ZABBIX_CONF=${ZABBIX_CONF:-/etc/zabbix/zabbix_agentd.conf}
+
+zbx_send_all () {
+    echo "$1" | ${ZABBIX_SENDER} -c ${ZABBIX_CONF} -i - 2>&1 > /dev/null
+}
+
+zbx_send () {
+    ${ZABBIX_SENDER} -c ${ZABBIX_CONF} -k "$1" -o "$2" > /dev/null 2>&1
+}

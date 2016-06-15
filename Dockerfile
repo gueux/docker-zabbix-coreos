@@ -54,19 +54,6 @@ RUN cd /tmp/zabbix-3.0.3 \
   && ./configure --prefix=/usr --sysconfdir=/etc/zabbix --enable-agent --enable-docker --with-libcurl \
   && make install
 
-# Create user
-RUN mkdir /var/lib/zabbix && \
-    useradd -r -s /bin/bash -d /var/lib/zabbix zabbix && \
-    usermod -a -G adm zabbix
-
-# Add configs user
-COPY etc/zabbix/ /etc/zabbix/
-COPY etc/supervisor/ /etc/supervisor/
-COPY etc/sudoers.d/zabbix etc/sudoers.d/zabbix
-RUN chmod 400 /etc/sudoers.d/zabbix && \
-    chown -R zabbix:zabbix /var/lib/zabbix && \
-    chown -R zabbix:zabbix /etc/zabbix
-
 # Cleanup
 RUN apt-get -f -y purge wget \
   patch \
@@ -80,6 +67,19 @@ RUN apt-get -f -y purge wget \
   apt-get autoremove -f -y && \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Create user
+RUN mkdir /var/lib/zabbix && \
+    useradd -r -s /bin/bash -d /var/lib/zabbix zabbix && \
+    usermod -a -G adm zabbix
+
+# Add configs user
+COPY etc/zabbix/ /etc/zabbix/
+COPY etc/supervisor/ /etc/supervisor/
+COPY etc/sudoers.d/zabbix etc/sudoers.d/zabbix
+RUN chmod 400 /etc/sudoers.d/zabbix && \
+    chown -R zabbix:zabbix /var/lib/zabbix && \
+    chown -R zabbix:zabbix /etc/zabbix
 
 COPY run.sh /
 RUN chmod +x /run.sh
