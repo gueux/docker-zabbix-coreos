@@ -56,15 +56,16 @@ RUN cd /tmp/zabbix-3.0.3 \
 
 # Create user
 RUN useradd -r -s /bin/bash -d /opt/zabbix zabbix && \
-    chown -R zabbix:zabbix /opt/zabbix && \
-    chown -R zabbix:zabbix /etc/zabbix && \
     usermod -a -G adm zabbix
 
 # Add configs user
 COPY etc/zabbix/ /etc/zabbix/
 COPY etc/supervisor/ /etc/supervisor/
 COPY etc/sudoers.d/zabbix etc/sudoers.d/zabbix
-RUN chmod 400 /etc/sudoers.d/zabbix
+RUN chmod 400 /etc/sudoers.d/zabbix && \
+    chown -R zabbix:zabbix /opt/zabbix && \
+    chown -R zabbix:zabbix /etc/zabbix
+
 
 # Cleanup
 RUN apt-get -f -y purge wget \
