@@ -68,6 +68,9 @@ RUN apt-get -f -y purge wget \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
+# for debug
+RUN apt-get install nano
+
 # Create user
 RUN mkdir /var/lib/zabbix && \
     useradd -r -s /bin/bash -d /var/lib/zabbix zabbix && \
