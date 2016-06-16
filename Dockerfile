@@ -65,8 +65,7 @@ RUN apt-get -f -y purge wget \
   libiksemel-dev \
   libsnmp-dev && \
   apt-get autoremove -f -y && \
-  apt-get clean # && \
-  #rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+  apt-get clean
 
 # Create user
 RUN mkdir /var/lib/zabbix && \
