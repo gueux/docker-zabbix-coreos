@@ -54,6 +54,9 @@ RUN cd /tmp/zabbix-3.0.3 \
   && ./configure --prefix=/usr --sysconfdir=/etc/zabbix --enable-agent --enable-docker --with-libcurl \
   && make install
 
+# for debug
+RUN apt-get install nano
+
 # Cleanup
 RUN apt-get -f -y purge wget \
   patch \
@@ -68,8 +71,6 @@ RUN apt-get -f -y purge wget \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# for debug
-RUN apt-get install nano
 
 # Create user
 RUN mkdir /var/lib/zabbix && \
