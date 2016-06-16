@@ -1,8 +1,8 @@
-# Docker Zabbix for CoreOS server
+# Docker Zabbix Agent 3.0 with CoreOS data elements
 
-This Docker container provides a patched Zabbix agent to monitor a real CoreOS server and all his containers.
+This Docker container provides a patched Zabbix Agent to monitor a real CoreOS server and all his containers.
 
-The Zabbix agent has been patched to read system informations from these directories:
+The Zabbix Agent has been patched to read system informations from these directories:
 
 * `/hostfs` mapped from `/` on the real host
 
@@ -41,7 +41,7 @@ To create the container:
         -v /:/hostfs:ro \
         -v /var/run/docker.sock:/hostfs/var/run/docker.sock \
         -e ZBX_Server=<server> \
-        --name zabbix-agent-docker bhuisgen/docker-zabbix-coreos
+        --name zabbix-agent bhuisgen/docker-zabbix-coreos
         
 If you want to access directly to the network stack of the node, you can use the *host* network mode but it is less secure:
 
@@ -49,7 +49,7 @@ If you want to access directly to the network stack of the node, you can use the
         -v /:/hostfs:ro \
         -v /var/run/docker.sock:/hostfs/var/run/docker.sock \
         -e ZBX_Server=<server> \
-        --name zabbix-agent-docker bhuisgen/docker-zabbix-coreos
+        --name zabbix-agent bhuisgen/docker-zabbix-coreos
         
 
 The agent will start and the auto-registration will add your agent if a auto-registration action is matched for your host metadata. If you don't want to auto-register your nodes, you need to specify the hostname value to use.
@@ -90,7 +90,7 @@ If you don't want to use auto-registration, create your service unit file. You c
 
 #### How to modify the agent configuration files ?
 
-    # docker exec -ti zabbix-coreos /bin/bash
+    # docker exec -ti zabbix-agent /bin/bash
 
 Inside the container:
 
@@ -98,7 +98,7 @@ Inside the container:
 
 #### How to restart the agent ?
 
-    # docker exec -ti zabbix-coreos /bin/bash
+    # docker exec -ti zabbix-agent /bin/bash
 
 Inside the container:
 
