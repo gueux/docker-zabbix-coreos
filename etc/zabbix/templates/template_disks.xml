@@ -4,7 +4,7 @@
     <date>2015-04-09T12:56:43Z</date>
     <groups>
         <group>
-            <name>Templates</name>
+            <name>Templates - Filesystems</name>
         </group>
     </groups>
     <templates>
@@ -14,7 +14,7 @@
             <description/>
             <groups>
                 <group>
-                    <name>Templates</name>
+                    <name>Templates - Filesystems</name>
                 </group>
             </groups>
             <applications>
