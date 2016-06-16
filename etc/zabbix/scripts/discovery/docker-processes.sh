@@ -18,7 +18,7 @@ do
         do
             P=$(echo -e "$PS" | jq ".[$J]")
             PID=$(echo -e "$P" | jq ".[1]" | sed -e 's/^"//' -e 's/"$//')
-            CMD=$(basename $(echo "$P" | jq ".[10]" | sed -e 's/^"//' -e 's/"$//' | cut -d' ' -f1))
+            CMD=$(basename $(echo -e "$P" | jq ".[10]" | sed -e 's/^"//' -e 's/"$//' | cut -d' ' -f1))
             DATA="$DATA,"'{"{#NAME}":'${NAME}',"{#PID}":'${PID}',"{#CMD}":"'${CMD}'"}'
         done
     fi
