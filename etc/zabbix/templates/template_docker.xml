@@ -4,16 +4,16 @@
     <date>2015-09-10T10:17:46Z</date>
     <groups>
         <group>
-            <name>Templates</name>
+            <name>Templates - Applications</name>
         </group>
     </groups>
     <templates>
         <template>
-            <template>Custom Template Docker</template>
-            <name>Custom Template Docker</name>
+            <template>Template_Docker</template>
+            <name>Template_Docker</name>
             <groups>
                 <group>
-                    <name>Templates</name>
+                    <name>Templates - Applications</name>
                 </group>
             </groups>
             <applications>
@@ -266,7 +266,7 @@
                     </item_prototypes>
                     <trigger_prototypes>
                         <trigger_prototype>
-                            <expression>{Custom Template Docker:docker.containers.running[{#NAME}].last()}=0</expression>
+                            <expression>{Template_Docker:docker.containers.running[{#NAME}].last()}=0</expression>
                             <name>Docker '{#NAME}' is not running on {HOST.NAME}</name>
                             <url/>
                             <status>0</status>
@@ -478,7 +478,7 @@
                     </item_prototypes>
                     <trigger_prototypes>
                         <trigger_prototype>
-                            <expression>{Custom Template Docker:docker.top.cpu[{#NAME},{#PID}].avg(5m)}&gt;{$DOCKER.PROCESS_CPUUSAGE_TRESHOLD}</expression>
+                            <expression>{Template_Docker:docker.top.cpu[{#NAME},{#PID}].avg(5m)}&gt;{$DOCKER.PROCESS_CPUUSAGE_TRESHOLD}</expression>
                             <name>Docker [{#NAME}/{#CMD}] CPU usage is too high on {HOST.NAME}</name>
                             <url/>
                             <status>0</status>
@@ -487,7 +487,7 @@
                             <type>0</type>
                         </trigger_prototype>
                         <trigger_prototype>
-                            <expression>{Custom Template Docker:docker.top.mem[{#NAME},{#PID}].avg(5m)}&gt;{$DOCKER.PROCESS_MEMUSAGE_TRESHOLD}</expression>
+                            <expression>{Template_Docker:docker.top.mem[{#NAME},{#PID}].avg(5m)}&gt;{$DOCKER.PROCESS_MEMUSAGE_TRESHOLD}</expression>
                             <name>Docker [{#NAME}/{#CMD}] memory usage is too high on {HOST.NAME}</name>
                             <url/>
                             <status>0</status>
@@ -523,7 +523,7 @@
                                     <calc_fnc>2</calc_fnc>
                                     <type>0</type>
                                     <item>
-                                        <host>Custom Template Docker</host>
+                                        <host>Template_Docker</host>
                                         <key>docker.top.cpu[{#NAME},{#PID}]</key>
                                     </item>
                                 </graph_item>
@@ -555,7 +555,7 @@
                                     <calc_fnc>2</calc_fnc>
                                     <type>0</type>
                                     <item>
-                                        <host>Custom Template Docker</host>
+                                        <host>Template_Docker</host>
                                         <key>docker.top.rss[{#NAME},{#PID}]</key>
                                     </item>
                                 </graph_item>
@@ -567,7 +567,7 @@
                                     <calc_fnc>2</calc_fnc>
                                     <type>0</type>
                                     <item>
-                                        <host>Custom Template Docker</host>
+                                        <host>Template_Docker</host>
                                         <key>docker.top.vsz[{#NAME},{#PID}]</key>
                                     </item>
                                 </graph_item>
@@ -599,7 +599,7 @@
                                     <calc_fnc>2</calc_fnc>
                                     <type>0</type>
                                     <item>
-                                        <host>Custom Template Docker</host>
+                                        <host>Template_Docker</host>
                                         <key>docker.top.mem[{#NAME},{#PID}]</key>
                                     </item>
                                 </graph_item>
@@ -625,7 +625,7 @@
     </templates>
     <triggers>
         <trigger>
-            <expression>{Custom Template Docker:proc.num[docker].last()}=0</expression>
+            <expression>{Template_Docker:proc.num[docker].last()}=0</expression>
             <name>Docker is not running on {HOST.NAME}</name>
             <url/>
             <status>0</status>
