@@ -85,7 +85,7 @@ RUN chmod 400 /etc/sudoers.d/zabbix && \
     chown -R zabbix:zabbix /var/lib/zabbix && \
     chown -R zabbix:zabbix /etc/zabbix
 
-COPY run.sh /
+COPY files/run.sh /
 RUN chmod +x /run.sh
 
 EXPOSE 10050
