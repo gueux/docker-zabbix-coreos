@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
 SOURCE_DIR=$(realpath $(dirname "${BASH_SOURCE[0]}"))
 CURRENT_DIR=$(pwd)
-
-echo "${SOURCE_DIR}/files/zabbix-docker-3.0.3.patch"
+VERSION=${VERSION:-3.0.3} # 3.0.2,3.0.3, maybe higher
 
 ## Download source
 cd /tmp \
-  && wget -O zabbix-3.0.3.tar.gz 'http://downloads.sourceforge.net/project/zabbix/ZABBIX%20Latest%20Stable/3.0.3/zabbix-3.0.3.tar.gz' \
-  && tar -zxvf zabbix-3.0.3.tar.gz \
-  && rm -f zabbix-3.0.3.tar.gz \
-  && cd /tmp/zabbix-3.0.3/ \
-  && patch --verbose -p1 < ${SOURCE_DIR}/zabbix-docker-3.0.3.patch \
+  && wget -O zabbix-${VERSION}.tar.gz "http://downloads.sourceforge.net/project/zabbix/ZABBIX%20Latest%20Stable/${VERSION}/zabbix-${VERSION}.tar.gz" \
+  && tar -zxf zabbix-${VERSION}.tar.gz \
+  && rm -f zabbix-${VERSION}.tar.gz \
+  && cd /tmp/zabbix-${VERSION}/ \
+  && patch --verbose -p1 < ${SOURCE_DIR}/zabbix-3.0.3-docker.patch \
+  && patch --verbose -p1 < ${SOURCE_DIR}/zabbix-3.0.3-cidr.patch \
   && cd /tmp \
-  && tar -zcvf zabbix-3.0.3.patched.tar.gz /tmp/zabbix-3.0.3 \
-  && mv zabbix-3.0.3.patched.tar.gz ${CURRENT_DIR}/zabbix-3.0.3.patched.tar.gz
+  && tar -zcf zabbix-${VERSION}.patched.tar.gz zabbix-3.0.3 \
+  && mv zabbix-${VERSION}.patched.tar.gz ${CURRENT_DIR}/zabbix-${VERSION}.patched.tar.gz \
+  && echo "./zabbix-${VERSION}.patched.tar.gz"
