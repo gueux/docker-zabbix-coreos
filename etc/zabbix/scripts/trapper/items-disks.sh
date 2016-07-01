@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+
+source "${BASH_SOURCE%/*}/../main"
 cd /sys/class/block
 for dev in *
 do

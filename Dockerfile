@@ -48,11 +48,17 @@ RUN cd /tmp \
   && wget -O zabbix-3.0.3.tar.gz 'http://downloads.sourceforge.net/project/zabbix/ZABBIX%20Latest%20Stable/3.0.3/zabbix-3.0.3.tar.gz' \
   && tar -zxvf zabbix-3.0.3.tar.gz
 
-COPY files/zabbix-docker-3.0.3.patch /tmp/zabbix-docker-3.0.3.patch
+COPY files/zabbix-3.0.3-docker.patch /tmp/zabbix-3.0.3-docker.patch
+COPY files/zabbix-3.0.3-cidr.patch /tmp/zabbix-3.0.3-cidr.patch
+
 RUN cd /tmp/zabbix-3.0.3 \
-  && patch --verbose -p1 < /tmp/zabbix-docker-3.0.3.patch \
+  && patch --verbose -p1 < /tmp/zabbix-3.0.3-docker.patch \
+  && patch --verbose -p1 < /tmp/zabbix-3.0.3-cidr.patch \
   && ./configure --prefix=/usr --sysconfdir=/etc/zabbix --enable-agent --enable-docker --with-libcurl \
   && make install
+
+# for debug
+RUN apt-get install nano
 
 # Cleanup
 RUN apt-get -f -y purge wget \
@@ -68,6 +74,7 @@ RUN apt-get -f -y purge wget \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
+
 # Create user
 RUN mkdir /var/lib/zabbix && \
     useradd -r -s /bin/bash -d /var/lib/zabbix zabbix && \
@@ -81,7 +88,7 @@ RUN chmod 400 /etc/sudoers.d/zabbix && \
     chown -R zabbix:zabbix /var/lib/zabbix && \
     chown -R zabbix:zabbix /etc/zabbix
 
-COPY run.sh /
+COPY files/run.sh /
 RUN chmod +x /run.sh
 
 EXPOSE 10050

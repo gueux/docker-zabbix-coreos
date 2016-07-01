@@ -10,7 +10,7 @@
     <templates>
         <template>
             <template>Template_CoreOS</template>
-            <name>Template_CoreOS</name>
+            <name>Template CoreOS</name>
             <groups>
                 <group>
                     <name>Templates - OS</name>
@@ -24,7 +24,7 @@
             <items>
                 <item>
                     <name>Etcd client port status</name>
-                    <type>7</type>
+                    <type>0</type>
                     <snmp_community/>
                     <multiplier>0</multiplier>
                     <snmp_oid/>
@@ -68,7 +68,7 @@
                 </item>
                 <item>
                     <name>Etcd server port status</name>
-                    <type>7</type>
+                    <type>0</type>
                     <snmp_community/>
                     <multiplier>0</multiplier>
                     <snmp_oid/>

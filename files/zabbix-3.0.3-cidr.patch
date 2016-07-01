@@ -1,0 +1,51 @@
+From f6a08c8150514e18ce02b12a55cd7ceb035bf543 Mon Sep 17 00:00:00 2001
+From: Nikolay Murga <nikolay.m@murga.kiev.ua>
+Date: Tue, 21 Jun 2016 17:07:09 +0300
+Subject: [PATCH] Add CIDR Support for Server config attribute
+
+---
+ src/libs/zbxcomms/comms.c | 28 ++++++++++++++++++++--------
+ 1 file changed, 20 insertions(+), 8 deletions(-)
+
+diff --git a/src/libs/zbxcomms/comms.c b/src/libs/zbxcomms/comms.c
+index 0bc0e1b..6f62c63 100644
+--- a/src/libs/zbxcomms/comms.c
++++ b/src/libs/zbxcomms/comms.c
+@@ -1827,14 +1827,26 @@ int	zbx_tcp_check_security(zbx_socket_t *s, const char *ip_list, int allow_if_em
+ 				freeaddrinfo(ai);
+ 			}
+ #else
+-			if (NULL != (hp = gethostbyname(start)))
+-			{
+-				for (i = 0; NULL != hp->h_addr_list[i]; i++)
+-				{
+-					if (name.sin_addr.s_addr == ((struct in_addr *)hp->h_addr_list[i])->s_addr)
+-						return SUCCEED;
+-				}
+-			}
++      if (strchr(start, '/') != NULL)
++      {
++        char cidr[MAX_STRING_LEN], *delim = "/", *ci;
++        strscpy(cidr, start);
++        struct in_addr in;
++        uint32_t mask;
++        ci = strtok(cidr, delim);
++        mask = 32 - atoi(strtok(NULL, delim));
++        inet_pton(AF_INET, ci, &in);
++        if (ntohl(name.sin_addr.s_addr) >> mask == ntohl(in.s_addr) >> mask)
++          return SUCCEED;
++      }
++      else if (NULL != (hp = gethostbyname(start)))
++      {
++        for (i = 0; NULL != hp->h_addr_list[i]; i++)
++        {
++          if (name.sin_addr.s_addr == ((struct in_addr *)hp->h_addr_list[i])->s_addr)
++            return SUCCEED;
++        }
++      }
+ #endif	/* HAVE_IPV6 */
+ 			if (NULL != end)
+ 			{
+-- 
+2.7.4 (Apple Git-66)
+
